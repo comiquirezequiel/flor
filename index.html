@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
 
 <style>
     html, body {
@@ -20,6 +21,32 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        cursor: pointer; 
+    }
+
+    #start-circle {
+        position: absolute;
+        z-index: 20;
+        width: 120px;
+        height: 120px;
+        background-color: rgba(250, 94, 94, 0.95);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        font-family: 'Pacifico', cursive;
+        font-size: 2rem;
+        box-shadow: 0 0 30px rgba(250, 94, 94, 0.6);
+        transition: all 1.6s cubic-bezier(0.25, 1, 0.5, 1);
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    #start-circle.hide {
+        transform: scale(0);
+        opacity: 0;
+        pointer-events: none;
     }
 
     #light {
@@ -29,17 +56,20 @@
         position: absolute;
         background: radial-gradient(
             circle,
-            rgba(255, 120, 120, 0.95) 0%,
-            rgba(255, 80, 80, 0.75) 20%,
-            rgba(220, 40, 40, 0.35) 45%,
-            rgba(200, 0, 0, 0.08) 70%,
-            rgba(255, 0, 0, 0) 100%
+            rgba(250, 94, 94, 0.95) 0%,
+            rgba(250, 94, 94, 0.75) 20%,
+            rgba(250, 94, 94, 0.35) 45%,
+            rgba(250, 94, 94, 0.08) 70%,
+            rgba(250, 94, 94, 0) 100%
         );
         opacity: 0;
         transform: scale(0.2);
         filter: blur(12px);
+    }
+
+    
+    #light.active {
         animation: lightAppear 2.5s ease-out forwards;
-        animation-delay: 2s; 
     }
 
     @keyframes lightAppear {
@@ -52,7 +82,6 @@
         position: absolute;
         top: 0; left: 0;
         z-index: 10;
-        /* El tamaño CSS se controla desde JS ahora para mantener la proporción HD */
     }
 </style>
 </head>
@@ -60,6 +89,7 @@
 <body>
 
 <div id="screen">
+    <div id="start-circle">Toca</div>
     <div id="light"></div>
     <canvas id="flowerCanvas"></canvas>
 </div>
@@ -69,21 +99,19 @@
     const ctx = canvas.getContext('2d');
 
     let scale = 1;
-    let dpr = window.devicePixelRatio || 1; // Densidad de píxeles (Retina display fix)
+    let dpr = window.devicePixelRatio || 1;
 
     function resize() {
         dpr = window.devicePixelRatio || 1;
         
-        // Ajustamos los píxeles reales del canvas
         canvas.width = window.innerWidth * dpr;
         canvas.height = window.innerHeight * dpr;
         
-        // Ajustamos el tamaño visible usando CSS
         canvas.style.width = `${window.innerWidth}px`;
         canvas.style.height = `${window.innerHeight}px`;
 
         ctx.setTransform(1, 0, 0, 1, 0, 0); 
-        ctx.scale(dpr, dpr); // Escalamos el contexto general
+        ctx.scale(dpr, dpr);
         ctx.translate(window.innerWidth / 2, window.innerHeight / 2);
         
         const minScreen = Math.min(window.innerWidth, window.innerHeight);
@@ -95,16 +123,10 @@
     }
     window.addEventListener('resize', resize);
     
-    // ==========================================
-    // VARIABLES PARA LA MEMORIA Y EL TAMAÑO
-    // ==========================================
     let allShapes = []; 
     let currentShape = null; 
     let maxRadius = 0; 
 
-    // ==========================================
-    // MOTOR TURTLE
-    // ==========================================
     class Turtle {
         constructor(ctx) {
             this.ctx = ctx;
@@ -139,7 +161,6 @@
         }
         
         circle(radius, extent) {
-            // AUMENTO DE CALIDAD GEOMÉTRICA: Más pasos = curvas más suaves
             const steps = Math.max(Math.floor(Math.abs(extent) / 1.5), 10); 
             const stepAngle = extent / steps;
             const rad = Math.abs(radius);
@@ -178,7 +199,6 @@
             
             ctx.strokeStyle = c;
             ctx.fillStyle = "black";
-            // Ajustamos el grosor de la línea
             ctx.lineWidth = 1.5 / scale; 
 
             ctx.beginPath();
@@ -207,9 +227,6 @@
         requestAnimationFrame(drawFrame);
     }
 
-    // ==========================================
-    // FÍSICAS: ROTACIÓN Y RESISTENCIA EN PÉTALOS
-    // ==========================================
     let currentAngle = 0;
     let spinSpeed = 0;
     const maxSpinSpeed = 1.3;
@@ -222,10 +239,8 @@
         currentAngle += spinSpeed;
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        // Borramos todo el canvas usando las dimensiones físicas en píxeles
         ctx.clearRect(0, 0, canvas.width, canvas.height); 
         
-        // Reaplicamos transformaciones respetando resoluciones altas
         ctx.scale(dpr, dpr);
         ctx.translate(window.innerWidth / 2, window.innerHeight / 2);
         ctx.scale(scale, scale);
@@ -277,12 +292,37 @@
         requestAnimationFrame(startSpin);
     }
 
+    
     resize(); 
     turtle = new Turtle(ctx);
+    
+    const screenEl = document.getElementById('screen');
+    const startCircle = document.getElementById('start-circle');
+    const lightEl = document.getElementById('light');
 
-    setTimeout(() => {
-        requestAnimationFrame(drawFrame);
-    }, 3000);
+    function iniciarExperiencia() {
+        
+        screenEl.removeEventListener('click', iniciarExperiencia);
+        screenEl.removeEventListener('touchstart', iniciarExperiencia);
+        screenEl.style.cursor = 'default';
+
+       
+        startCircle.classList.add('hide');
+
+        
+        setTimeout(() => {
+            
+            lightEl.classList.add('active');
+            
+            setTimeout(() => {
+                requestAnimationFrame(drawFrame);
+            }, 1000);
+            
+        }, 2000);
+    }
+
+    screenEl.addEventListener('click', iniciarExperiencia);
+    screenEl.addEventListener('touchstart', iniciarExperiencia);
 
 </script>
 </body>
