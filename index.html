@@ -52,6 +52,7 @@
         position: absolute;
         top: 0; left: 0;
         z-index: 10;
+        /* El tamaño CSS se controla desde JS ahora para mantener la proporción HD */
     }
 </style>
 </head>
@@ -68,14 +69,24 @@
     const ctx = canvas.getContext('2d');
 
     let scale = 1;
+    let dpr = window.devicePixelRatio || 1; // Densidad de píxeles (Retina display fix)
 
     function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        ctx.setTransform(1, 0, 0, 1, 0, 0); 
-        ctx.translate(canvas.width / 2, canvas.height / 2);
+        dpr = window.devicePixelRatio || 1;
         
-        const minScreen = Math.min(canvas.width, canvas.height);
+        // Ajustamos los píxeles reales del canvas
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        
+        // Ajustamos el tamaño visible usando CSS
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0); 
+        ctx.scale(dpr, dpr); // Escalamos el contexto general
+        ctx.translate(window.innerWidth / 2, window.innerHeight / 2);
+        
+        const minScreen = Math.min(window.innerWidth, window.innerHeight);
         scale = minScreen / 1000; 
         ctx.scale(scale, scale);
         
@@ -128,7 +139,8 @@
         }
         
         circle(radius, extent) {
-            const steps = Math.max(Math.floor(Math.abs(extent) / 4), 2); 
+            // AUMENTO DE CALIDAD GEOMÉTRICA: Más pasos = curvas más suaves
+            const steps = Math.max(Math.floor(Math.abs(extent) / 1.5), 10); 
             const stepAngle = extent / steps;
             const rad = Math.abs(radius);
             const stepLen = 2 * rad * Math.sin((Math.abs(stepAngle) * Math.PI / 180) / 2);
@@ -166,7 +178,8 @@
             
             ctx.strokeStyle = c;
             ctx.fillStyle = "black";
-            ctx.lineWidth = 2 / scale; 
+            // Ajustamos el grosor de la línea
+            ctx.lineWidth = 1.5 / scale; 
 
             ctx.beginPath();
             ctx.moveTo(turtle.x, turtle.y);
@@ -209,19 +222,19 @@
         currentAngle += spinSpeed;
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.translate(canvas.width / 2, canvas.height / 2);
+        // Borramos todo el canvas usando las dimensiones físicas en píxeles
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        
+        // Reaplicamos transformaciones respetando resoluciones altas
+        ctx.scale(dpr, dpr);
+        ctx.translate(window.innerWidth / 2, window.innerHeight / 2);
         ctx.scale(scale, scale);
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
 
         const baseRotationRad = currentAngle * Math.PI / 180;
         
-        // --- AQUÍ ESTÁ EL CAMBIO ---
-        // Ahora solo el 15% más interno de la flor (el centro) es rígido.
         const threshold = maxRadius * 0.15; 
-        
-        // Ajustamos la fuerza para que el pétalo largo se doble bonito sin romperse
         const bendFactor = spinSpeed * 0.08; 
 
         function transformPoint(x, y) {
@@ -229,8 +242,6 @@
             const theta = Math.atan2(y, x); 
 
             let dragRad = 0;
-            
-            // ¿El punto está en el pétalo (afuera del centro rígido)?
             if (r > threshold) {
                 dragRad = -(bendFactor * (r - threshold)) * (Math.PI / 180);
             }
@@ -255,7 +266,7 @@
             }
 
             ctx.strokeStyle = shape.color;
-            ctx.lineWidth = 2 / scale;
+            ctx.lineWidth = 1.5 / scale;
             if (shape.fill) {
                 ctx.fillStyle = "black";
                 ctx.fill();
